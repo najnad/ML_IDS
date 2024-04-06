@@ -1,6 +1,7 @@
 from joblib import load
 import pandas as pd
-# import tkinter as tk
+import dearpygui.dearpygui as dpg
+
 
 # Multi-class features selected using SelectPercentile feature extraction.
 MC_FEATURES = ['duration', 'wrong_fragment', 'urgent', 'hot', 'num_failed_logins',
@@ -64,27 +65,33 @@ B_FEATURES = ['duration', 'wrong_fragment', 'logged_in', 'is_guest_login',
               'flag_RSTO', 'flag_RSTOS0', 'flag_RSTR', 'flag_S0', 'flag_S1',
               'flag_SF', 'flag_SH']
 
+# Severity ranking for each packet.
+ATTACK_SEVERITY = {
+    "NORMAL": "0",
+    "DOS": "3",
+    "PROBE": "1",
+    "R2L": "2",
+    "U2R": "4",
+    "SUSPICIOUS ACTIVITY": "Unavailable"
+}
 
-# def ids_gui(samples):
-#     root = tk.Tk()
-#     root.title('IDS')
-#
-#     root.geometry('500x500')
-#     root.resizable(False, False)
-#
-#     normal_btn = tk.Button(root, text='NORMAL PACKET', command=lambda: get_sample(samples['normal']))
-#     dos_btn = tk.Button(root, text='DOS PACKET', command=lambda: get_sample(samples['dos']))
-#     probe_btn = tk.Button(root, text='PROBE PACKET', command=lambda: get_sample(samples['probe']))
-#     u2r_btn = tk.Button(root, text='U2R PACKET', command=lambda: get_sample(samples['u2r']))
-#     r2l_btn = tk.Button(root, text='R2L PACKET', command=lambda: get_sample(samples['r2l']))
-#
-#     normal_btn.pack(pady=5)
-#     dos_btn.pack(pady=5)
-#     probe_btn.pack(pady=5)
-#     u2r_btn.pack(pady=5)
-#     r2l_btn.pack(pady=5)
-#
-#     root.mainloop()
+
+def ids_gui():
+
+    dpg.create_context()
+    dpg.create_viewport(title='IDS', width=200, height=200)
+    with dpg.window(label='IDS Program'):
+        dpg.add_text('Inject Packet:')
+        dpg.add_button(label='NORMAL', tag='normal_btn', callback=lambda _: classify_packet(0))
+        dpg.add_button(label='DOS', tag='dos_btn', callback=lambda _: classify_packet(1))
+        dpg.add_button(label='PROBE', tag='probe_btn', callback=lambda _: classify_packet(2))
+        dpg.add_button(label='U2R', tag='u2r_btn', callback=lambda _: classify_packet(3))
+        dpg.add_button(label='R2L', tag='r2l_btn', callback=lambda _: classify_packet(4))
+
+    dpg.setup_dearpygui()
+    dpg.show_viewport()
+    dpg.start_dearpygui()
+    dpg.destroy_context()
 
 
 # Loads packet samples and returns an array.
@@ -123,13 +130,15 @@ def classify_packet(index):
     b_prediction = get_prediction(B_MODEL, packet)
 
     if mc_prediction == 'NORMAL' and b_prediction == 'NORMAL':  # both models NORMAL
-        result = "Packet is most likely NORMAL."
+        result = mc_prediction
     elif mc_prediction != 'NORMAL':  # mc = not NORMAL
-        result = f"{mc_prediction} detected."
+        result = mc_prediction
     else:  # mc = NORMAL, b = ABNORMAL
-        result = "ABNORMAL packet detected."
+        result = "SUSPICIOUS ACTIVITY"
 
-    return f"[*] {result} \n"
+    return print(f"-----------------------------------------\n"
+                 f"[*] Prediction: {result} \n"
+                 f"[*] Severity: {ATTACK_SEVERITY[result]}")
 
 
 # Load models
@@ -143,32 +152,35 @@ drop_labels(SAMPLES)
 
 # Runs the program.
 def main():
-    actions = ['1', '2', '3', '4', '5', '0']  # Valid actions
-    while True:
-        command = input('Select type of packet or exit with [0]: \n'
-                        '[1] Normal\n'
-                        '[2] DOS\n'
-                        '[3] PROBE\n'
-                        '[4] U2R\n'
-                        '[5] R2L\n\n'
-                        'Selection: ')
-        if command in actions:
-            if command == '1':  # Normal packet
-                print(classify_packet(0))
-            elif command == '2':  # Dos packet
-                print(classify_packet(1))
-            elif command == '3':  # Probe packet
-                print(classify_packet(2))
-            elif command == '4':  # U2R packet
-                print(classify_packet(3))
-            elif command == '5':  # R2L packet
-                print(classify_packet(4))
-            elif command == '0':  # Exit program
-                print('Exit...')
-                exit(1)
-        else:
-            print('Invalid Command. Try again.\n\n')
-            continue
+    ids_gui()  # Start GUI
+
+    # # Command Line Application
+    # actions = ['1', '2', '3', '4', '5', '0']  # Valid actions
+    # while True:
+    #     command = input('Select type of packet or exit with [0]: \n'
+    #                     '[1] Normal\n'
+    #                     '[2] DOS\n'
+    #                     '[3] PROBE\n'
+    #                     '[4] U2R\n'
+    #                     '[5] R2L\n\n'
+    #                     'Selection: ')
+    #     if command in actions:
+    #         if command == '1':  # Normal packet
+    #             print(classify_packet(0))
+    #         elif command == '2':  # Dos packet
+    #             print(classify_packet(1))
+    #         elif command == '3':  # Probe packet
+    #             print(classify_packet(2))
+    #         elif command == '4':  # U2R packet
+    #             print(classify_packet(3))
+    #         elif command == '5':  # R2L packet
+    #             print(classify_packet(4))
+    #         elif command == '0':  # Exit program
+    #             print('Exit...')
+    #             exit(1)
+    #     else:
+    #         print('Invalid Command. Try again.\n\n')
+    #         continue
 
 
 if __name__ == '__main__':
