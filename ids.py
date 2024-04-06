@@ -1,6 +1,7 @@
 from joblib import load
 import pandas as pd
 import dearpygui.dearpygui as dpg
+from datetime import datetime
 
 
 # Multi-class features selected using SelectPercentile feature extraction.
@@ -80,6 +81,7 @@ def ids_gui():
 
     dpg.create_context()
     dpg.create_viewport(title='IDS', width=200, height=200)
+
     with dpg.window(label='IDS Program'):
         dpg.add_text('Inject Packet:')
         dpg.add_button(label='NORMAL', tag='normal_btn', callback=lambda _: classify_packet(0))
@@ -137,6 +139,7 @@ def classify_packet(index):
         result = "SUSPICIOUS ACTIVITY"
 
     return print(f"-----------------------------------------\n"
+                 f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
                  f"[*] Prediction: {result} \n"
                  f"[*] Severity: {ATTACK_SEVERITY[result]}")
 
