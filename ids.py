@@ -1,8 +1,11 @@
+import argparse
 from joblib import load
 import pandas as pd
 import dearpygui.dearpygui as dpg
 from datetime import datetime
+import warnings
 
+warnings.filterwarnings("ignore")  # Ignore joblib InconsistentVersionWarning
 
 # Multi-class features selected using SelectPercentile feature extraction.
 MC_FEATURES = ['duration', 'wrong_fragment', 'urgent', 'hot', 'num_failed_logins',
@@ -77,6 +80,14 @@ ATTACK_SEVERITY = {
 }
 
 
+def get_args():
+    parser = argparse.ArgumentParser("Arg parser for IDS.")
+    parser.add_argument("-i", "--interface", default="gui", choices=["gui", "console"],
+                        help="IDS interface [gui or console]")
+    return parser.parse_args()
+
+
+# GUI.
 def ids_gui():
 
     dpg.create_context()
@@ -116,27 +127,32 @@ def drop_labels(datasets):
 # Gets prediction using specified model.
 def get_prediction(model, packet):
     if model == MC_MODEL:
-        filtered_packet = packet[MC_FEATURES]  # Extracts the relevant features
+        filtered_packet = packet[MC_FEATURES]  # Pre-process: Extract relevant features
     else:
-        filtered_packet = packet[B_FEATURES]
+        filtered_packet = packet[B_FEATURES]  # Pre-process: Extract relevant features
     filtered_packet_vals = filtered_packet.values
     prediction = model.predict(filtered_packet_vals)
 
     return prediction[0]
 
 
+def prediction_logic(mc_prediction, b_prediction):
+    if mc_prediction != "NORMAL":
+        return mc_prediction
+    elif b_prediction != "NORMAL":
+        return "SUSPICIOUS ACTIVITY"
+    else:
+        return "NORMAL"
+
+
 # Gets a random sample from the specified dataset and returns the prediction.
 def classify_packet(index):
     packet = SAMPLES[index].sample()  # Gets a random sample from the specified dataset
+
     mc_prediction = get_prediction(MC_MODEL, packet)
     b_prediction = get_prediction(B_MODEL, packet)
 
-    if mc_prediction == 'NORMAL' and b_prediction == 'NORMAL':  # both models NORMAL
-        result = mc_prediction
-    elif mc_prediction != 'NORMAL':  # mc = not NORMAL
-        result = mc_prediction
-    else:  # mc = NORMAL, b = ABNORMAL
-        result = "SUSPICIOUS ACTIVITY"
+    result = prediction_logic(mc_prediction, b_prediction)
 
     return print(f"-----------------------------------------\n"
                  f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
@@ -155,35 +171,41 @@ drop_labels(SAMPLES)
 
 # Runs the program.
 def main():
-    ids_gui()  # Start GUI
+    args = get_args()
 
-    # # Command Line Application
-    # actions = ['1', '2', '3', '4', '5', '0']  # Valid actions
-    # while True:
-    #     command = input('Select type of packet or exit with [0]: \n'
-    #                     '[1] Normal\n'
-    #                     '[2] DOS\n'
-    #                     '[3] PROBE\n'
-    #                     '[4] U2R\n'
-    #                     '[5] R2L\n\n'
-    #                     'Selection: ')
-    #     if command in actions:
-    #         if command == '1':  # Normal packet
-    #             print(classify_packet(0))
-    #         elif command == '2':  # Dos packet
-    #             print(classify_packet(1))
-    #         elif command == '3':  # Probe packet
-    #             print(classify_packet(2))
-    #         elif command == '4':  # U2R packet
-    #             print(classify_packet(3))
-    #         elif command == '5':  # R2L packet
-    #             print(classify_packet(4))
-    #         elif command == '0':  # Exit program
-    #             print('Exit...')
-    #             exit(1)
-    #     else:
-    #         print('Invalid Command. Try again.\n\n')
-    #         continue
+    if args.interface.lower() == "gui":
+        print('GUI mode.')
+        ids_gui()  # Start GUI
+    else:
+        print('Console app mode.')
+        # Command Line Application
+        actions = ['1', '2', '3', '4', '5', '0']  # Valid actions
+        while True:
+            command = input('\nSelect type of packet or exit with [0]: \n'
+                            '[1] Normal\n'
+                            '[2] DOS\n'
+                            '[3] PROBE\n'
+                            '[4] U2R\n'
+                            '[5] R2L\n\n'
+                            'Selection: ')
+            if command in actions:
+                if command == '1':  # Normal packet
+                    classify_packet(0)
+                elif command == '2':  # Dos packet
+                    classify_packet(1)
+                elif command == '3':  # Probe packet
+                    classify_packet(2)
+                elif command == '4':  # U2R packet
+                    classify_packet(3)
+                elif command == '5':  # R2L packet
+                    classify_packet(4)
+                elif command == '0':  # Exit program
+                    print('Exit...')
+                    exit(1)
+                continue
+            else:
+                print('Invalid Command. Try again.\n\n')
+                continue
 
 
 if __name__ == '__main__':
