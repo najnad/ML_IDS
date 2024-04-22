@@ -173,7 +173,7 @@ drop_labels(SAMPLES)
 def main():
     args = get_args()
 
-    if args.interface.lower() == "gui":
+    if args.interface == "gui":
         print('GUI mode.')
         ids_gui()  # Start GUI
     else:
