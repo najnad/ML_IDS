@@ -80,6 +80,7 @@ ATTACK_SEVERITY = {
 }
 
 
+# Command Line Args Parser.
 def get_args():
     parser = argparse.ArgumentParser("Arg parser for IDS.")
     parser.add_argument("-i", "--interface", default="gui", choices=["gui", "console"],
@@ -124,8 +125,13 @@ def drop_labels(datasets):
         dataset.drop('label', axis=1, inplace=True)
 
 
-# Gets prediction using specified model.
 def get_prediction(model, packet):
+    """
+    Gets prediction using specified model.
+    :param model: MC or B model
+    :param packet: unfiltered packet
+    :return: prediction
+    """
     if model == MC_MODEL:
         filtered_packet = packet[MC_FEATURES]  # Pre-process: Extract relevant features
     else:
@@ -137,6 +143,12 @@ def get_prediction(model, packet):
 
 
 def prediction_logic(mc_prediction, b_prediction):
+    """
+    Makes a prediction based on the MC model and B model.
+    :param mc_prediction: multi-class prediction
+    :param b_prediction: binary class prediction
+    :return: overall prediction
+    """
     if mc_prediction != "NORMAL":
         return mc_prediction
     elif b_prediction != "NORMAL":
@@ -145,8 +157,12 @@ def prediction_logic(mc_prediction, b_prediction):
         return "NORMAL"
 
 
-# Gets a random sample from the specified dataset and returns the prediction.
 def classify_packet(index):
+    """
+    Gets a random sample from the specified dataset and returns the prediction.
+    :param index: 0: normal, 1: dos, 2: probe, 3: r2l, 4: u2r
+    :return: prediction report
+    """
     packet = SAMPLES[index].sample()  # Gets a random sample from the specified dataset
 
     mc_prediction = get_prediction(MC_MODEL, packet)
@@ -173,12 +189,11 @@ drop_labels(SAMPLES)
 def main():
     args = get_args()
 
-    if args.interface == "gui":
+    if args.interface == "gui":  # GUI
         print('GUI mode.')
-        ids_gui()  # Start GUI
-    else:
+        ids_gui()
+    else:  # Command Line Application
         print('Console app mode.')
-        # Command Line Application
         actions = ['1', '2', '3', '4', '5', '0']  # Valid actions
         while True:
             command = input('\nSelect type of packet or exit with [0]: \n'
